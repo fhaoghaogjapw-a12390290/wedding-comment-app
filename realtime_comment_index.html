@@ -1,0 +1,761 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>あつし＆さおり披露宴二次会（リアルタイム版）</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Hiragino Kaku Gothic Pro', 'Meiryo', sans-serif;
+            overflow: hidden;
+            background: linear-gradient(135deg, #FF1744 0%, #FF6B9D 25%, #FFC107 50%, #FF9800 75%, #FF5722 100%);
+            height: 100vh;
+            position: relative;
+        }
+
+        /* 背景装飾 */
+        .bg-decoration {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            opacity: 0.1;
+            pointer-events: none;
+            overflow: hidden;
+        }
+
+        .bg-decoration::before {
+            content: '🎉';
+            position: absolute;
+            font-size: 100px;
+            animation: float 20s infinite;
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translate(10%, 10%) rotate(0deg); }
+            50% { transform: translate(80%, 80%) rotate(180deg); }
+        }
+
+        /* ヘッダー */
+        .header {
+            background: linear-gradient(135deg, rgba(255, 23, 68, 0.95) 0%, rgba(255, 152, 0, 0.95) 100%);
+            color: white;
+            padding: 15px 20px;
+            text-align: center;
+            border-bottom: 3px solid #FFC107;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+            position: relative;
+            z-index: 100;
+        }
+
+        .header h1 {
+            font-size: 28px;
+            margin-bottom: 5px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+        }
+
+        .header .subtitle {
+            font-size: 14px;
+            opacity: 0.9;
+        }
+
+        /* モード選択画面 */
+        .mode-select {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: white;
+            padding: 40px;
+            border-radius: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+            text-align: center;
+            z-index: 200;
+        }
+
+        .mode-select h2 {
+            color: #FF1744;
+            margin-bottom: 30px;
+            font-size: 24px;
+        }
+
+        .mode-buttons {
+            display: flex;
+            gap: 20px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .mode-button {
+            padding: 20px 40px;
+            font-size: 18px;
+            font-weight: bold;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.3s;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.2);
+        }
+
+        .mode-button.display {
+            background: linear-gradient(135deg, #FF1744 0%, #FF9800 100%);
+            color: white;
+        }
+
+        .mode-button.input {
+            background: linear-gradient(135deg, #FFC107 0%, #FF9800 100%);
+            color: white;
+        }
+
+        .mode-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 12px rgba(0,0,0,0.3);
+        }
+
+        /* コメント表示エリア */
+        .comment-display {
+            position: absolute;
+            top: 80px;
+            left: 0;
+            right: 0;
+            bottom: 120px;
+            overflow: hidden;
+            pointer-events: none;
+        }
+
+        .display-mode .comment-display {
+            bottom: 0;
+        }
+
+        .comment {
+            position: absolute;
+            white-space: nowrap;
+            font-size: 32px;
+            font-weight: bold;
+            padding: 8px 16px;
+            border-radius: 8px;
+            text-shadow: 
+                2px 2px 4px rgba(0,0,0,0.8),
+                -1px -1px 2px rgba(0,0,0,0.8),
+                1px -1px 2px rgba(0,0,0,0.8),
+                -1px 1px 2px rgba(0,0,0,0.8);
+            animation: scroll 12s linear;
+            z-index: 10;
+        }
+
+        @keyframes scroll {
+            from {
+                left: 100%;
+            }
+            to {
+                left: -100%;
+            }
+        }
+
+        /* コメント入力エリア */
+        .input-area {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: linear-gradient(135deg, rgba(255, 23, 68, 0.95) 0%, rgba(255, 152, 0, 0.95) 100%);
+            padding: 20px;
+            border-top: 3px solid #FFC107;
+            box-shadow: 0 -2px 10px rgba(0,0,0,0.3);
+            z-index: 100;
+            display: none;
+        }
+
+        .input-mode .input-area {
+            display: block;
+        }
+
+        .input-container {
+            max-width: 800px;
+            margin: 0 auto;
+            display: flex;
+            gap: 10px;
+        }
+
+        #commentInput {
+            flex: 1;
+            padding: 12px 16px;
+            font-size: 16px;
+            border: 2px solid #FF9800;
+            border-radius: 8px;
+            outline: none;
+            font-family: inherit;
+        }
+
+        #commentInput:focus {
+            border-color: #FFC107;
+            box-shadow: 0 0 10px rgba(255, 193, 7, 0.7);
+        }
+
+        #sendButton {
+            padding: 12px 30px;
+            font-size: 16px;
+            font-weight: bold;
+            background: linear-gradient(135deg, #FFC107 0%, #FF9800 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+        }
+
+        #sendButton:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 12px rgba(0,0,0,0.4);
+        }
+
+        #sendButton:active {
+            transform: translateY(0);
+        }
+
+        /* 統計情報 */
+        .stats {
+            position: fixed;
+            top: 90px;
+            right: 20px;
+            background: rgba(255, 255, 255, 0.95);
+            padding: 15px 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+            border: 2px solid #FF9800;
+            z-index: 50;
+            font-size: 14px;
+            color: #FF1744;
+            font-weight: bold;
+        }
+
+        .stats-number {
+            font-size: 24px;
+            font-weight: bold;
+            color: #FF1744;
+        }
+
+        /* 接続状態 */
+        .connection-status {
+            position: fixed;
+            top: 90px;
+            left: 20px;
+            background: rgba(255, 255, 255, 0.95);
+            padding: 10px 15px;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+            border: 2px solid #4CAF50;
+            z-index: 50;
+            font-size: 12px;
+            color: #4CAF50;
+            font-weight: bold;
+        }
+
+        .connection-status.disconnected {
+            border-color: #f44336;
+            color: #f44336;
+        }
+
+        /* レスポンシブ対応 */
+        @media (max-width: 768px) {
+            .header h1 {
+                font-size: 18px;
+            }
+
+            .comment {
+                font-size: 24px;
+            }
+
+            .stats {
+                top: 70px;
+                right: 10px;
+                padding: 10px 15px;
+                font-size: 12px;
+            }
+
+            .stats-number {
+                font-size: 18px;
+            }
+
+            .connection-status {
+                top: 70px;
+                left: 10px;
+                font-size: 10px;
+                padding: 8px 12px;
+            }
+
+            .input-area {
+                padding: 15px;
+            }
+
+            #commentInput {
+                font-size: 14px;
+            }
+
+            #sendButton {
+                padding: 12px 20px;
+                font-size: 14px;
+            }
+
+            .mode-select {
+                padding: 30px 20px;
+                width: 90%;
+            }
+
+            .mode-select h2 {
+                font-size: 20px;
+            }
+
+            .mode-buttons {
+                flex-direction: column;
+            }
+
+            .mode-button {
+                width: 100%;
+            }
+        }
+
+        /* 祝福エフェクト */
+        .celebration {
+            position: fixed;
+            pointer-events: none;
+            animation: celebrate 3s ease-out forwards;
+            z-index: 1000;
+        }
+
+        @keyframes celebrate {
+            0% {
+                transform: translateY(0) rotate(0deg);
+                opacity: 1;
+            }
+            100% {
+                transform: translateY(-500px) rotate(720deg);
+                opacity: 0;
+            }
+        }
+
+        /* 特殊演出：祭エフェクト */
+        .firework {
+            position: fixed;
+            pointer-events: none;
+            z-index: 2000;
+        }
+
+        .firework-particle {
+            position: absolute;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            animation: explode 1.5s ease-out forwards;
+        }
+
+        @keyframes explode {
+            0% {
+                transform: translate(0, 0) scale(1);
+                opacity: 1;
+            }
+            100% {
+                opacity: 0;
+            }
+        }
+
+        .special-comment {
+            animation: scroll 12s linear, rainbow 2s linear infinite !important;
+            font-size: 48px !important;
+            text-shadow: 
+                0 0 10px #fff,
+                0 0 20px #fff,
+                0 0 30px #ff00de,
+                0 0 40px #ff00de,
+                2px 2px 4px rgba(0,0,0,0.8) !important;
+        }
+
+        .fast-comment {
+            opacity: 0.7;
+            filter: blur(1px);
+        }
+
+        @keyframes rainbow {
+            0% { color: #ff0000; }
+            16% { color: #ff7f00; }
+            33% { color: #ffff00; }
+            50% { color: #00ff00; }
+            66% { color: #0000ff; }
+            83% { color: #8b00ff; }
+            100% { color: #ff0000; }
+        }
+
+        .screen-flash {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: white;
+            pointer-events: none;
+            z-index: 1500;
+            animation: flash 0.5s ease-out;
+        }
+
+        @keyframes flash {
+            0%, 50% { opacity: 0.8; }
+            100% { opacity: 0; }
+        }
+
+        .hidden {
+            display: none !important;
+        }
+    </style>
+</head>
+<body>
+    <div class="bg-decoration"></div>
+    
+    <!-- モード選択画面 -->
+    <div class="mode-select" id="modeSelect">
+        <h2>🎉 モードを選択してください</h2>
+        <div class="mode-buttons">
+            <button class="mode-button display" onclick="selectMode('display')">
+                📺 大画面表示モード<br>
+                <small>（プロジェクター/TV用）</small>
+            </button>
+            <button class="mode-button input" onclick="selectMode('input')">
+                📱 コメント投稿モード<br>
+                <small>（スマホ/タブレット用）</small>
+            </button>
+        </div>
+    </div>
+
+    <div class="header">
+        <h1>🎉 あつし＆さおり披露宴二次会 〜お祭り気分で祝おう〜 💒</h1>
+        <div class="subtitle">おめでとうメッセージをみんなで流そう！</div>
+    </div>
+
+    <div class="connection-status" id="connectionStatus">
+        🔴 接続中...
+    </div>
+
+    <div class="stats">
+        <div>投稿数</div>
+        <div class="stats-number" id="commentCount">0</div>
+    </div>
+
+    <div class="comment-display" id="commentDisplay"></div>
+
+    <div class="input-area">
+        <div class="input-container">
+            <input 
+                type="text" 
+                id="commentInput" 
+                placeholder="お祝いメッセージを入力してください..."
+                maxlength="50"
+            >
+            <button id="sendButton">送信</button>
+        </div>
+    </div>
+
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
+
+    <script>
+        // ⚠️ Firebase設定（ここにあなたの設定を入れてください）
+const firebaseConfig = {
+  apiKey: "AIzaSyAiD_duX7cFOnicEmzjqTy23WGVyhKjlfA",
+  authDomain: "atsushi-saori-wedding.firebaseapp.com",
+  databaseURL: "https://atsushi-saori-wedding-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId: "atsushi-saori-wedding",
+  storageBucket: "atsushi-saori-wedding.firebasestorage.app",
+  messagingSenderId: "707954857153",
+  appId: "1:707954857153:web:3c494faf0f6263fa86b040"
+};
+
+        // Firebase初期化
+        let app, database, commentsRef;
+        let isConfigured = false;
+
+        try {
+            if (firebaseConfig.apiKey !== "YOUR_API_KEY") {
+                app = firebase.initializeApp(firebaseConfig);
+                database = firebase.database();
+                commentsRef = database.ref('comments');
+                isConfigured = true;
+            }
+        } catch (error) {
+            console.error("Firebase初期化エラー:", error);
+        }
+
+        const commentDisplay = document.getElementById('commentDisplay');
+        const commentInput = document.getElementById('commentInput');
+        const sendButton = document.getElementById('sendButton');
+        const commentCountElement = document.getElementById('commentCount');
+        const connectionStatus = document.getElementById('connectionStatus');
+        const modeSelect = document.getElementById('modeSelect');
+
+        let commentCount = 0;
+        let activeComments = [];
+        let currentMode = null;
+
+        // 下ネタキーワードリスト
+        const nsfwKeywords = [
+            'エッチ', 'えっち', 'セックス', 'sex', 'SEX', 'エロ', 'えろ',
+            'H', 'h', '夜', '初夜', 'ベッド', 'ホテル', '子作り', '赤ちゃん',
+            'イチャイチャ', 'ラブラブ', 'キス', '抱きしめ', '抱き合う',
+            '新婚', '夫婦', '甘い', '濃厚', 'ドキドキ', '愛し合う',
+            'ソープ', 'デリヘル', 'ヘルス', 'ピンサロ', 'キャバクラ',
+            'ホスト', '風俗', 'ラブホ', 'ラブホテル', 'モーテル',
+            'フェラ', 'クンニ', '手コキ', '手マン', '素股', 'パイズリ',
+            '69', 'シックスナイン', '正常位', '騎乗位', 'バック',
+            '中出し', '外出し', '射精', 'イく', 'イカせる', '絶頂',
+            'オーガズム', 'アクメ', '感じる', '濡れる', '勃起',
+            'おっぱい', 'オッパイ', '乳首', 'チクビ', 'バスト',
+            'ちんこ', 'チンコ', 'ちんぽ', 'チンポ', 'ペニス',
+            'まんこ', 'マンコ', 'アソコ', 'あそこ', '性器',
+            '局部', '股間', '下半身', 'Gスポット', 'クリトリス',
+            'SM', 'M字開脚', '潮吹き', 'ハメ撮り', '3P', '乱交',
+            'スワッピング', '不倫', '浮気', '二股', 'セフレ',
+            'ワンナイト', '援交', 'パパ活', '枕営業',
+            'オナニー', 'オナる', '自慰', 'マスターベーション',
+            'AV', 'アダルト', 'エロ本', 'エロ動画', 'エロゲ',
+            '裸', 'ヌード', '全裸', '脱ぐ', '脱がす',
+            '処女', '童貞', '筆おろし', '初体験', 'ビッチ',
+            'ヤリマン', 'ヤリチン', 'むっつり', 'スケベ', '助平',
+            '痴漢', '覗き', '盗撮', 'セクハラ', 'レイプ',
+            'コンドーム', 'ゴム', '避妊', 'ピル', '生',
+            '興奮', '欲情', 'ムラムラ', '発情', 'そそる',
+            '誘惑', '誘う', 'お持ち帰り', 'お泊り', '同棲',
+            '密会', '逢引', 'デート', '二人きり', '個室',
+            '夜の営み', '夜の生活', '大人の関係', '体の関係',
+            '一線を越える', '事に及ぶ', 'ヤる', 'やる', 'ハメる',
+            'ナニ', 'アレ', 'ソレ', 'いけない', '秘密',
+            'ムフフ', 'うふふ', 'いやん', 'あん', 'ん',
+            '初夜の儀式', '床入り', '寝所', '閨', '同衾',
+            '跡継ぎ', '世継ぎ', '妊活', '子宝', '授かる',
+            '仲良し', '愛の巣', '新居', '二人の時間', 'プライベート',
+            '頑張って', 'その気', 'ムード', 'ロマンチック'
+        ];
+
+        const colors = [
+            '#ffffff', '#ffeb3b', '#ff4757', '#FF1744',
+            '#ff9ff3', '#feca57', '#48dbfb', '#ff6348'
+        ];
+
+        // モード選択
+        function selectMode(mode) {
+            currentMode = mode;
+            modeSelect.classList.add('hidden');
+            
+            if (mode === 'display') {
+                document.body.classList.add('display-mode');
+            } else {
+                document.body.classList.add('input-mode');
+                commentInput.focus();
+            }
+
+            // Firebase設定チェック
+            if (!isConfigured) {
+                alert('⚠️ Firebase設定が必要です！\n\nHTMLファイル内のfirebaseConfigを編集してください。\n\n詳しい手順は添付の説明書を確認してください。');
+                connectionStatus.textContent = '❌ 未設定';
+                connectionStatus.classList.add('disconnected');
+            } else {
+                setupFirebase();
+            }
+        }
+
+        // Firebase接続設定
+        function setupFirebase() {
+            // 接続状態監視
+            const connectedRef = database.ref('.info/connected');
+            connectedRef.on('value', (snapshot) => {
+                if (snapshot.val() === true) {
+                    connectionStatus.textContent = '🟢 接続中';
+                    connectionStatus.classList.remove('disconnected');
+                } else {
+                    connectionStatus.textContent = '🔴 切断';
+                    connectionStatus.classList.add('disconnected');
+                }
+            });
+
+            // 新しいコメントをリッスン
+            commentsRef.on('child_added', (snapshot) => {
+                const commentData = snapshot.val();
+                displayComment(commentData.text, commentData.timestamp);
+            });
+        }
+
+        // コメント表示
+        function displayComment(text, timestamp) {
+            if (!text.trim()) return;
+
+            commentCount++;
+            commentCountElement.textContent = commentCount;
+
+            const hasMatsuriKeyword = text.includes('祭') || text.includes('お祭り') || text.includes('フェス');
+            const isNSFW = nsfwKeywords.some(keyword => text.includes(keyword));
+
+            let commentClass = 'comment';
+            if (hasMatsuriKeyword) {
+                commentClass = 'comment special-comment';
+            } else if (isNSFW) {
+                commentClass = 'comment fast-comment';
+            }
+            
+            const comment = document.createElement('div');
+            comment.className = commentClass;
+            comment.textContent = text;
+            
+            if (!hasMatsuriKeyword) {
+                const color = colors[Math.floor(Math.random() * colors.length)];
+                comment.style.color = color;
+            }
+            
+            const maxHeight = commentDisplay.offsetHeight - 50;
+            const randomTop = Math.floor(Math.random() * maxHeight);
+            comment.style.top = randomTop + 'px';
+            
+            let baseDuration = (10 + Math.random() * 5) / 1.2;
+            let duration = baseDuration;
+            if (isNSFW && !hasMatsuriKeyword) {
+                duration = baseDuration / 3;
+            }
+            comment.style.animationDuration = duration + 's';
+
+            commentDisplay.appendChild(comment);
+            activeComments.push(comment);
+
+            setTimeout(() => {
+                comment.remove();
+                activeComments = activeComments.filter(c => c !== comment);
+            }, duration * 1000);
+
+            if (hasMatsuriKeyword) {
+                triggerSpecialEffect();
+            } else {
+                createCelebrationEffect();
+            }
+        }
+
+        // コメント送信
+        function sendComment() {
+            const text = commentInput.value.trim();
+            if (!text) return;
+
+            if (!isConfigured) {
+                alert('Firebase設定が必要です！');
+                return;
+            }
+
+            const newComment = {
+                text: text,
+                timestamp: Date.now()
+            };
+
+            commentsRef.push(newComment)
+                .then(() => {
+                    commentInput.value = '';
+                    commentInput.focus();
+                })
+                .catch((error) => {
+                    console.error('送信エラー:', error);
+                    alert('送信に失敗しました。接続を確認してください。');
+                });
+        }
+
+        sendButton.addEventListener('click', sendComment);
+        commentInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                sendComment();
+            }
+        });
+
+        // 特殊演出関数
+        function triggerSpecialEffect() {
+            const flash = document.createElement('div');
+            flash.className = 'screen-flash';
+            document.body.appendChild(flash);
+            setTimeout(() => flash.remove(), 500);
+
+            for (let i = 0; i < 5; i++) {
+                setTimeout(() => {
+                    createFirework(
+                        Math.random() * window.innerWidth,
+                        Math.random() * (window.innerHeight - 200) + 100
+                    );
+                }, i * 200);
+            }
+
+            for (let i = 0; i < 20; i++) {
+                setTimeout(() => createCelebrationEffect(), i * 100);
+            }
+        }
+
+        function createFirework(x, y) {
+            const firework = document.createElement('div');
+            firework.className = 'firework';
+            firework.style.left = x + 'px';
+            firework.style.top = y + 'px';
+            document.body.appendChild(firework);
+
+            const colors = ['#ff0000', '#ff7f00', '#ffff00', '#00ff00', '#0000ff', '#8b00ff', '#ff00de'];
+            const particleCount = 30;
+
+            for (let i = 0; i < particleCount; i++) {
+                const particle = document.createElement('div');
+                particle.className = 'firework-particle';
+                
+                const angle = (Math.PI * 2 * i) / particleCount;
+                const velocity = 100 + Math.random() * 100;
+                const tx = Math.cos(angle) * velocity;
+                const ty = Math.sin(angle) * velocity;
+
+                particle.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
+                
+                const keyframe = `
+                    @keyframes explode-${i}-${Date.now()} {
+                        0% {
+                            transform: translate(0, 0) scale(1);
+                            opacity: 1;
+                        }
+                        100% {
+                            transform: translate(${tx}px, ${ty}px) scale(0);
+                            opacity: 0;
+                        }
+                    }
+                `;
+                
+                const style = document.createElement('style');
+                style.textContent = keyframe;
+                document.head.appendChild(style);
+                
+                particle.style.animation = `explode-${i}-${Date.now()} 1.5s ease-out forwards`;
+                firework.appendChild(particle);
+            }
+
+            setTimeout(() => firework.remove(), 2000);
+        }
+
+        function createCelebrationEffect() {
+            const emojis = ['🎉', '💐', '🎊', '💕', '✨', '🎆', '💒', '🌸'];
+            const emoji = emojis[Math.floor(Math.random() * emojis.length)];
+            
+            const celebration = document.createElement('div');
+            celebration.className = 'celebration';
+            celebration.textContent = emoji;
+            celebration.style.fontSize = '30px';
+            celebration.style.left = Math.random() * window.innerWidth + 'px';
+            celebration.style.top = window.innerHeight - 100 + 'px';
+            
+            document.body.appendChild(celebration);
+            
+            setTimeout(() => celebration.remove(), 3000);
+        }
+    </script>
+</body>
+</html>
